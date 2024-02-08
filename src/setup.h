@@ -4,13 +4,13 @@
 #define WIFI_PWD "password"//**Your password here** leave empty if open (bad!)
 
 //Uncomment this to set a static IP instead of DHCP for the ESP (Separate by commas instead of dots)
-//#define WIFI_IP 192, 168, 0, 5
-//#define WIFI_SUBNET 255, 255, 255, 0
-//#define WIFI_GATEWAY 192, 168, 0, 1
-//#define WIFI_PRIMARY_DNS 8, 8, 8, 8     //optional
-//#define WIFI_SECONDARY_DNS 8, 8, 4, 4   //optional
+#define WIFI_IP 192, 168, 1, 37
+#define WIFI_SUBNET 255, 255, 255, 0
+#define WIFI_GATEWAY 192, 168, 1, 1
+#define WIFI_PRIMARY_DNS 8, 8, 8, 8     //optional
+#define WIFI_SECONDARY_DNS 8, 8, 4, 4   //optional
 
-#define MQTT_SERVER "192.168.1.4"//**IP address here of your MQTT server**
+#define MQTT_SERVER "192.168.1.13"//**IP address here of your MQTT server**
 #define MQTT_USERNAME ""//leave empty if not set (bad!)
 #define MQTT_PASSWORD ""//leave empty if not set (bad!)
 #define MQTT_PORT 1883
@@ -89,7 +89,7 @@
 //#include "def/Altherma(ERGA D EHV-EHB-EHVZ DA series 04-08kW).h"
 //#include "def/Altherma(ERGA D EHV-EHB-EHVZ DJ series 04-08 kW).h"
 //#include "def/Altherma(ERGA E EHSH-X P30-50 E_EF series 04-08kW-ECH2O).h"
-//#include "def/Altherma(ERGA E EHV-EHB-EHVZ E_EJ series 04-08kW).h"
+#include "def/Altherma(ERGA E EHV-EHB-EHVZ E_EJ series 04-08kW).h"
 //#include "def/Altherma(ERLA D EBSH-X 16P30-50 D SERIES 11-16kW-ECH2O).h"
 //#include "def/Altherma(ERLA D EBV-EBB-EBVZ D SERIES 11-16kW).h"
 //#include "def/Altherma(ERLA03 D EHFH-EHFZ DJ series 3kW).h"
