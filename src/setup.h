@@ -7,27 +7,40 @@
 #define WIFI_IP 192, 168, 1, 37
 #define WIFI_SUBNET 255, 255, 255, 0
 #define WIFI_GATEWAY 192, 168, 1, 1
-#define WIFI_PRIMARY_DNS 8, 8, 8, 8     //optional
+#define WIFI_PRIMARY_DNS 192, 168, 1, 1     //optional
 #define WIFI_SECONDARY_DNS 8, 8, 4, 4   //optional
 
-#define MQTT_SERVER "192.168.1.13"//**IP address here of your MQTT server**
+#define MQTT_SERVER "mqtt.lan"//**IP address here of your MQTT server**
 #define MQTT_USERNAME ""//leave empty if not set (bad!)
 #define MQTT_PASSWORD ""//leave empty if not set (bad!)
 #define MQTT_PORT 1883
+//#define MQTT_ENCRYPTED // uncomment if MQTT connection is encrypted via TLS
 
 #define FREQUENCY 30000 //query values every 30 sec
 
-#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus)
-//Values used when **M5StickC** or **M5STickCPlus** environment is selected:
-#define RX_PIN    36// Pin connected to the TX pin of X10A 
-#define TX_PIN    26// Pin connected to the RX pin of X10A
+#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stick_C_Plus2)  || defined(ARDUINO_M5Stack_Tough)
+// Values used when M5StickC, M5STickCPlus or M5Stick_C_Plus2 environment is selected:
+#define SERIAL2_BAUD 115200 //Baudrate for the serial port connected to the Altherma
+#define RX_PIN    36 // Pin connected to the TX pin of X10A 
+#define TX_PIN    26 // Pin connected to the RX pin of X10A
+#define PIN_THERM 0  // Pin connected to the thermostat relay (normally open)
+
+#elif defined(ARDUINO_M5Stick_S3)
+// Values used when M5Stick_S3 environment is selected:
+#define SERIAL2_BAUD 115200//Baudrate for the serial port connected to the Altherma
+#define RX_PIN    44 // Pin connected to the TX pin of X10A
+#define TX_PIN    43 // Pin connected to the RX pin of X10A
+#define PIN_THERM 8  // Pin connected to the thermostat relay (normally open) - Using GPIO0 gives a conflict with U16
+
 #else 
 //Default GPIO PINs for Serial2:
-#define RX_PIN    16// Pin connected to the TX pin of X10A 
-#define TX_PIN    17// Pin connected to the RX pin of X10A
+#define RX_PIN    16 // Pin connected to the TX pin of X10A 
+#define TX_PIN    17 // Pin connected to the RX pin of X10A
+#define PIN_THERM 0  // Pin connected to the thermostat relay (normally open)
 #endif
 
-#define PIN_THERM 0// Pin connected to the thermostat relay (normally open)
+
+#define PIN_THERM_ACTIVE_STATE HIGH// State to trigger the thermostat relay
 
 //Smart grid control - Optional:
 //Uncomment and set to enable SG mqtt functions
@@ -37,6 +50,13 @@
 // Only uncomment one of them
 #define SG_RELAY_HIGH_TRIGGER
 //#define SG_RELAY_LOW_TRIGGER
+
+// Safety relay - also called Prefered electric fare - Optional
+// If the safety relay is triggered, the heat pump will be stopped
+// uncomment and set to enable the safety relay
+// #define SAFETY_RELAY_PIN 33// Pin connected to the safety relay
+// #define SAFETY_RELAY_ACTIVE_STATE HIGH// Pin connected to the safety relay
+
 
 // DO NOT CHANGE: Defines the SG active/inactive relay states, according to the definition of the trigger status
 #if defined(SG_RELAY_LOW_TRIGGER)
@@ -58,6 +78,11 @@
 
 //Uncomment to disable common frequent log messages via MQTT to reduce network load
 //#define DISABLE_LOG_MESSAGES
+
+//Uncomment this line to enable DebugSerial - MQTT<>Serial gateway functionality
+//Messages received on espaltherma/serialTX are sent to serial port
+//Responses from serial port are published to espaltherma/serialRX
+//#define DEBUG_SERIAL
 
 
 //Uncomment *ONE* of the following according to your installation.

@@ -10,3 +10,6 @@ contrib/ldd_decoder/bin/
 contrib/ldd_decoder/obj/
 contrib/ldd_decoder/label_defines.*
 src/my_setup.h
+DaikinLogger.sln
+.vscode/extensions.json
+include/def/mydef.h

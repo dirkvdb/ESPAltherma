@@ -2,10 +2,8 @@
 #define mqttSerial_h
 #include "Stream.h"
 #include <PubSubClient.h>
-#ifdef ARDUINO_M5Stick_C_Plus
-#include <M5StickCPlus.h>
-#elif ARDUINO_M5Stick_C
-#include <M5StickC.h>
+#if defined(ARDUINO_M5Stick_C_Plus2) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stack_Tough) || defined(ARDUINO_M5Stick_S3)
+#include <M5Unified.h>
 #endif
 class MQTTSerial: public Stream
 {
@@ -59,7 +57,7 @@ MQTTSerial::MQTTSerial()
 }
 size_t MQTTSerial::write(const uint8_t *buffer, size_t size)
 {
-#ifdef ARDUINO_M5Stick_C
+#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stack_Tough) || defined(ARDUINO_M5Stick_S3)
     if (M5.Lcd.getCursorY()+13>M5.Lcd.height()){
         M5.Lcd.fillScreen(TFT_BLACK);
         M5.Lcd.setCursor(0,0);

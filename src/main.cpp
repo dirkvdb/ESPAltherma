@@ -1,7 +1,5 @@
-#ifdef ARDUINO_M5Stick_C_Plus
-#include <M5StickCPlus.h>
-#elif ARDUINO_M5Stick_C
-#include <M5StickC.h>
+#if defined(ARDUINO_M5Stick_C_Plus2) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stack_Tough) || defined(ARDUINO_M5Stick_S3)
+#include <M5Unified.h>
 #else
 #include <Arduino.h>
 #endif
@@ -26,6 +24,7 @@
 #include "mqttserial.h"
 #include "converters.h"
 #include "comm.h"
+#include "homeassistant.h"
 #include "mqtt.h"
 #include "restart.h"
 
@@ -33,7 +32,8 @@ Converter converter;
 char registryIDs[32]; //Holds the registries to query
 bool busy = false;
 
-#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus)
+#if defined(ARDUINO_M5Stick_C_Plus2) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stack_Tough) || defined(ARDUINO_M5Stick_S3)
+#define HAS_M5_SCREEN
 long LCDTimeout = 40000;//Keep screen ON for 40s then turn off. ButtonA will turn it On again.
 #endif
 
@@ -83,6 +83,45 @@ void updateValues(char regID)
 }
 
 uint16_t loopcount =0;
+boolean display_sleeping = false;
+
+#ifdef HAS_M5_SCREEN
+#ifdef ARDUINO_M5Stack_Tough
+#define SCREEN_BRIGHTNESS 12
+#else
+#define SCREEN_BRIGHTNESS 100
+#endif
+
+void wakeScreen()
+{
+  M5.Display.wakeup();
+  M5.Display.setBrightness(SCREEN_BRIGHTNESS);
+  LCDTimeout = millis() + 30000;
+  display_sleeping = false;
+}
+
+//Non blocking: also called while waiting for WiFi/MQTT so the button
+//can wake the screen even when there is no connection.
+void handleScreen()
+{
+  M5.update();
+#ifdef ARDUINO_M5Stack_Tough
+  bool wakeRequested = M5.Touch.changed;
+#else
+  bool wakeRequested = M5.BtnA.wasPressed();
+#endif
+  if (wakeRequested){//Turn back ON screen
+    wakeScreen();
+  } else if (LCDTimeout < millis() && !display_sleeping) { //Turn screen off.
+    M5.Display.setBrightness(0);
+    M5.Display.sleep();
+    display_sleeping = true;
+  }
+}
+#else
+void wakeScreen(){}
+void handleScreen(){}
+#endif
 
 void extraLoop()
 {
@@ -92,16 +131,7 @@ void extraLoop()
   { //Stop processing during OTA
     ArduinoOTA.handle();
   }
-
-#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus)
-  if (M5.BtnA.wasPressed()){//Turn back ON screen
-    M5.Axp.ScreenBreath(12);
-    LCDTimeout = millis() + 30000;
-  }else if (LCDTimeout < millis()){//Turn screen off.
-    M5.Axp.ScreenBreath(0);
-  }
-  M5.update();
-#endif
+  handleScreen();
 }
 
 #ifdef ARDUINO_ARCH_ESP8266
@@ -156,18 +186,88 @@ void get_wifi_bssid(const char *ssid, uint8_t *bssid, uint32_t *wifi_channel)
 
 void checkWifi()
 {
-  int i = 0;
+  if (WiFi.status() == WL_CONNECTED)
+    return;
+
+  unsigned long lostTime = millis();
+  unsigned long lastAttempt = millis();
+  unsigned long lastDot = 0;
+  wakeScreen();//Show we lost connection; keep the screen usable during the outage
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
-    Serial.print(".");
-    if (i++ == 120)
+    handleScreen();//Keep the button responsive while disconnected
+    delay(50);
+    if (millis() - lastDot >= 500)
     {
-      Serial.printf("Tried connecting for 60 sec, rebooting now.");
+      Serial.print(".");
+      lastDot = millis();
+    }
+    if (millis() - lastAttempt >= 15000)
+    { //Auto-reconnect is not making it: force a full scan so we reattach to the strongest AP
+      Serial.println("\nStill disconnected. Rescanning for strongest AP...");
+      WiFi.disconnect();
+      delay(100);
+      WiFi.begin(WIFI_SSID, WIFI_PWD, 0, 0, true);
+      lastAttempt = millis();
+    }
+    if (millis() - lostTime >= 120000)
+    { //Still no WiFi after 2 min: reboot in case the WiFi stack is wedged
+      Serial.printf("Tried connecting for 120 sec, rebooting now.");
       restart_board();
     }
   }
 }
+
+#ifndef ARDUINO_ARCH_ESP8266
+//With several APs sharing the same SSID, the ESP32 stays associated to its AP
+//until the link fully drops, even if a much closer AP is available. Periodically
+//check the signal and reattach to a significantly stronger AP of the same SSID.
+#define ROAM_CHECK_INTERVAL 60000UL
+#define ROAM_RSSI_THRESHOLD -75 //Only consider roaming when weaker than this
+#define ROAM_MIN_IMPROVEMENT 8  //dB gain required to switch AP
+unsigned long lastRoamCheck = 0;
+
+void checkWifiRoaming()
+{
+  if (WiFi.status() != WL_CONNECTED || millis() - lastRoamCheck < ROAM_CHECK_INTERVAL)
+    return;
+  lastRoamCheck = millis();
+
+  int32_t currentRSSI = WiFi.RSSI();
+  if (currentRSSI >= ROAM_RSSI_THRESHOLD)
+    return;
+
+  int16_t n = WiFi.scanNetworks(false, true);
+  int16_t bestIndex = -1;
+  int32_t bestRSSI = currentRSSI + ROAM_MIN_IMPROVEMENT;
+  for (int16_t i = 0; i < n; i++)
+  {
+    if (WiFi.SSID(i) == WIFI_SSID && WiFi.RSSI(i) > bestRSSI
+        && memcmp(WiFi.BSSID(i), WiFi.BSSID(), 6) != 0)
+    {
+      bestRSSI = WiFi.RSSI(i);
+      bestIndex = i;
+    }
+  }
+  if (bestIndex >= 0)
+  {
+    uint8_t bssid[6];
+    memcpy(bssid, WiFi.BSSID(bestIndex), 6);
+    int32_t channel = WiFi.channel(bestIndex);
+    mqttSerial.printf("WiFi weak (%ddBm), roaming to stronger AP (%ddBm, ch%d)\n", currentRSSI, bestRSSI, channel);
+    WiFi.scanDelete();
+    WiFi.disconnect();
+    WiFi.begin(WIFI_SSID, WIFI_PWD, channel, bssid, true);
+    checkWifi();
+  }
+  else
+  {
+    WiFi.scanDelete();
+  }
+}
+#else
+void checkWifiRoaming(){}
+#endif
 
 void setup_wifi()
 {
@@ -214,6 +314,7 @@ void setup_wifi()
   {
     WiFi.begin(WIFI_SSID, WIFI_PWD, 0, 0, true);
   }
+  WiFi.setAutoReconnect(true);
   checkWifi();
   mqttSerial.printf("Connected. IP Address: %s\n", WiFi.localIP().toString().c_str());
 }
@@ -245,23 +346,58 @@ void initRegistries(){
 }
 
 void setupScreen(){
-#if defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus)
+#if !defined(ARDUINO_M5Stick_C_Plus2) && defined(ARDUINO_M5Stick_C) || defined(ARDUINO_M5Stick_C_Plus) || defined(ARDUINO_M5Stack_Tough)
   M5.begin();
-  M5.Axp.EnableCoulombcounter();
   M5.Lcd.setRotation(1);
-  M5.Axp.ScreenBreath(12);
+  M5.Display.setBrightness(127);
   M5.Lcd.fillScreen(TFT_WHITE);
   M5.Lcd.setFreeFont(&FreeSansBold12pt7b);
-  m5.Lcd.setTextDatum(MC_DATUM);
+  M5.Lcd.setTextDatum(MC_DATUM);
   int xpos = M5.Lcd.width() / 2; // Half the screen width
   int ypos = M5.Lcd.height() / 2; // Half the screen width
   M5.Lcd.setTextColor(TFT_DARKGREY);
-  M5.Lcd.drawString("ESPAltherma", xpos,ypos,1);
+  M5.Lcd.drawString("ESPAltherma", xpos,ypos);
   delay(2000);
   M5.Lcd.fillScreen(TFT_BLACK);
   M5.Lcd.setTextFont(1);
   M5.Lcd.setTextColor(TFT_GREEN);
+
+#elif defined(ARDUINO_M5Stick_C_Plus2)
+  M5.begin();
+  M5.Lcd.setRotation(1);
+  M5.Lcd.setBrightness(127);
+  M5.Lcd.fillScreen(TFT_WHITE);
+  M5.Lcd.setFont(&FreeSansBold12pt7b);
+  M5.Lcd.setTextDatum(MC_DATUM);
+  int xpos = M5.Lcd.width() / 2; // Half the screen width
+  int ypos = M5.Lcd.height() / 2; // Half the screen width
+  M5.Lcd.setTextColor(TFT_DARKGREY);
+  M5.Lcd.drawString("ESPAltherma", xpos,ypos);
+  delay(2000);
+  M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.setFont(&Font0);
+  M5.Lcd.setTextColor(TFT_GREEN);
+
+#elif defined(ARDUINO_M5Stick_S3)
+  M5.begin();
+  M5.Lcd.setRotation(1);
+  M5.Display.setBrightness(127);
+  M5.Lcd.fillScreen(TFT_WHITE);
+  M5.Lcd.setFont(&FreeSansBold12pt7b);
+  M5.Lcd.setTextDatum(MC_DATUM);
+  int xpos = M5.Lcd.width() / 2; // Half the screen width
+  int ypos = M5.Lcd.height() / 2; // Half the screen width
+  M5.Lcd.setTextColor(TFT_DARKGREY);
+  M5.Lcd.drawString("ESPAltherma", xpos,ypos);
+  delay(2000);
+  M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.setTextFont(0);  // use a smaller font, to make the text fit on the screen
+  M5.Lcd.setTextColor(TFT_GREEN);
+
 #endif
+
+
+
 }
 
 void setup()
@@ -270,7 +406,12 @@ void setup()
   setupScreen();
   MySerial.begin(9600, SERIAL_CONFIG, RX_PIN, TX_PIN);
   pinMode(PIN_THERM, OUTPUT);
-  digitalWrite(PIN_THERM, HIGH);
+  // digitalWrite(PIN_THERM, PIN_THERM_ACTIVE_STATE);
+
+#ifdef SAFETY_RELAY_PIN
+  pinMode(SAFETY_RELAY_PIN, OUTPUT);
+  digitalWrite(SAFETY_RELAY_PIN, !SAFETY_RELAY_ACTIVE_STATE);
+#endif
 
 #ifdef PIN_SG1
   //Smartgrid pins - Set first to the inactive state, before configuring as outputs (avoid false triggering when initializing)
@@ -300,11 +441,21 @@ void setup()
   });
   ArduinoOTA.begin();
 
-  client.setServer(MQTT_SERVER, MQTT_PORT);
+  #ifdef MQTT_ENCRYPTED
+  // Required to establish encrypted connections. 
+  // If you want to be more secure here, you can use the CA certificate to allow the wifi client to verify the other party. NOTE: If you use the CA certificate here, then you need to make sure to update it here regulary!
+  espClient.setInsecure();
+  espClient.setTimeout(5);
+  #endif
+
   client.setBufferSize(MAX_MSG_SIZE); //to support large json message
   client.setCallback(callback);
   client.setServer(MQTT_SERVER, MQTT_PORT);
-  mqttSerial.print("Connecting to MQTT server...");
+
+  auto timeout = espClient.getTimeout();
+  Serial.printf("Wifi client timeout: %d\n", timeout);
+
+  mqttSerial.printf("Connecting to MQTT server: %s:%d\n", MQTT_SERVER, MQTT_PORT);
   mqttSerial.begin(&client, "espaltherma/log");
   reconnectMqtt();
   mqttSerial.println("OK!");
@@ -328,6 +479,7 @@ void loop()
   { //restart board if needed
     checkWifi();
   }
+  checkWifiRoaming();//Move to a stronger AP of the same SSID if signal got weak
   if (!client.connected())
   { //(re)connect to MQTT if needed
     reconnectMqtt();

@@ -18,7 +18,7 @@
 
 <p><b>ESPAltherma</b> is a solution to monitor Daikin Altherma / ROTEX / HOVAL Belaria heat pump activity using just Arduino on an <b>ESP32</b> or <b>ESP8266</b> Microcontroller.</p>
 
-_If this project has any value for you, please consider [buying me a 🍺](https://www.buymeacoffee.com/raomin) or even better [sponsoring ESPAltherma](https://github.com/sponsors/raomin/)!. I don't do this for money but it feels good to get some support! Thanks :)_ 
+_If this project has any value for you, please consider [buying me a 🍺](https://www.buymeacoffee.com/raomin) or even better [sponsoring ESPAltherma](https://github.com/sponsors/raomin/)! I don't do this for money but it feels good to get some support! Thanks :)_ 
 
 ## Features
 
@@ -47,7 +47,8 @@ _If this project has any value for you, please consider [buying me a 🍺](https
 
 ## Software
 
-- Platformio
+- [VSCode](https://code.visualstudio.com/)
+- [PlatformIO IDE](https://platformio.org/platformio-ide)
 
 *That's all!*
 
@@ -60,7 +61,7 @@ _If this project has any value for you, please consider [buying me a 🍺](https
 2. Optional - If you are using an **M5StickC** (or M5Stack), select the corresponding environment from the status bar:
 Click  ![end m5](doc/images/defaultenv.png) and select **env:M5StickC** on the top. The status bar should display ![end m5](doc/images/m5envv.png)
 For **M5StickCPlus** select **env:M5StickCPlus**
-If you are using an **ESP8266** select the `nodemcuv2` environement.
+If you are using an **ESP8266** select the `nodemcuv2` environment.
 
 3. Edit the file `src/setup.h` as follows:
     - enter your wifi and mqtt settings
@@ -115,9 +116,9 @@ If you are using an **ESP8266** select the `nodemcuv2` environement.
 ## Step 2: Connecting to the Heat pump
 
 1. Turn OFF your heat pump at the circuit breaker.
-2. Unscrew your pannel to access the main PCB of your unit.
+2. Unscrew your panel to access the main PCB of your unit.
 3. Localize the X10A connector on your the PCB. This is the serial port on the main PCB. If your installation include a bi-zone module, the X10A port is occupied with a connector to the Bi-Zone module. You should then connect to the X12A port on the bi-zone module. Pins are identical to the X10A.
-4. Using the 5 pin connector or 4 Dupont wires, connect the ESP as follow. Pay attention to the orientation of the socket.
+4. Using the 5 pin connector or 4 Dupont wires, connect the ESP as follows. Pay attention to the orientation of the socket.
 
 ### Daikin Altherma 4 pin X10A Connection
 
@@ -131,7 +132,7 @@ If you are using an **ESP8266** select the `nodemcuv2` environement.
 | 4-NC | Not connected |
 | 5-GND | GND |
 
-> ESP `RX_PIN` `TX_PIN` can be changed in `src/setup.h`. 
+> ESP `RX_PIN` and `TX_PIN` can be changed in `src/setup.h`. 
 
 ### 8 pin X10A Connection
 
@@ -139,7 +140,9 @@ Some heat pumps (ROTEX) have an X10A port which connects differently:
 
 ![](doc/images/rotexX10A.png)
 
-Some users reported that the 5V from their ROTEX was not enough to power their ESP32/ESP8266. In this case, use an USB charger to power the ESP32/ESP8266. The 5V from the X10A is then not needed. Whatever you do, **make sure you keep a wire connecting the GND of the ESP32/ESP8266 to the GND pin of the X10A (even if you power your ESP32/ESP8266 with a USB charger)!!**
+Pin 1 (on the left in the picture) is +5v. Some users reported that the 5V from their ROTEX was not strong enough to power their ESP32/ESP8266. In this case, use an USB charger to power the ESP32/ESP8266. The 5V from the X10A is then not needed.
+
+Whatever you do, **make sure you keep a wire connecting the GND of the ESP32/ESP8266 to the GND pin of the X10A (even if you power your ESP32/ESP8266 with a USB charger)!!**
 
 
 5. Cross check twice the connections and turn on your heat pump. Two new entities AlthermaSensor and AlthermaSwitch should appear in Home Assistant. AlthermaSensor holds the values as attributes.
@@ -152,7 +155,7 @@ $ mosquitto_sub -v -t "espaltherma/#"
 
 or via Home Assistant Configuration->Integration->MQTT Configure->Listen to topic espaltherma/# -> Start Listening
 
-## Step 3 (optional) - Controling your Daikin Altherma heat pump
+## Step 3 (optional) - Controlling your Daikin Altherma heat pump
 
 ESPAltherma cannot change the configuration values of the heat pump (see [FAQ](#faq)). However, ESPAltherma can control a relay on MQTT that can simulate an *external On Off thermostat*. Doing so allows to remotely turn on/off the heating function of your heat pump. A second relay can be used to trigger the cooling function.
 
@@ -171,15 +174,15 @@ Other users installations are described [in this issue](/../../issues/17).
 On a Rotex this would connect to J16 Pin 1 and 2. Note: RT needs to be switched ON in the heatpump Connection menu. Heating will be ON if pins are connected, else no heating, so connect to the NC (normally closed) of the relay. 
 
 ## Step 4 (optional) - Smart grid features
-ESPaltherma can also integrate with SG-Ready options of your heat pump. To do so, uncomment and configure `PIN_SG1` and `PIN_SG2` in `src/setup.c` and send one of the allowed values (0..3) to MQTT channel `espaltherma/sg/set`. Current SG mode will be available in `espaltherma/sg/state`.  
+ESPaltherma can also integrate with SG-Ready options of your heat pump. To do so, uncomment and configure `PIN_SG1` and `PIN_SG2` in `src/setup.h` and send one of the allowed values (0..3) to MQTT channel `espaltherma/sg/set`. Current SG mode will be available in `espaltherma/sg/state`.
 
-Of course, you will need to use 2 more relays to open/close SG1 and SG2 contacts of your heat pump.  
+Of course, you will need to use 2 more relays to open/close SG1 and SG2 contacts of your heat pump. These default to G32 and G33, which on the M5StickCPlus is from the header next to the USB C port (not the DuPont connectors you used before).
 
-I found that using 5V supply pin of X10A provides enough power for my ESP32 and both relays, but your mileage may vary.  
+I found that using 5V supply pin of X10A provides enough power for my ESP32 and both relays, but your mileage may vary.
 
-On a Rotex SG1 and SG2 contacts are located in J8 connector, pin 5-6 (Smart Grid) and 11-12 (EVU) respectively.  
+On a Rotex SG1 and SG2 contacts are located in J8 connector, pin 5-6 (Smart Grid) and 11-12 (EVU) respectively.
 
-Once configured and connected, your heat pump will work like this:  
+Once configured and connected, your heat pump will work like this:
 
 | sg/set value| SG1   | SG2   | SG-Mode              | Working mode | Typical result |
 | ----------- | ----- | ----- | -------------------- | ------------ | -------------- |
@@ -188,7 +191,7 @@ Once configured and connected, your heat pump will work like this:
 | 2           | close | open  | 2 - Recommended ON   | Hp is recommended to be ON | HP will increase DHW setpoint as well as LW setpoint (documentation says +5 °C, but my tests actually show +6 °C) |
 | 3           | close | close | 3 - Force ON         | Hp is forced ON            | HP will increase DHW setpoint and will use its full power to heat DHW (to 70 °C) |
   
-*Note that In SG3 mode your HP will really be power hungry so make sure to enable it only when electricity cost is low (ideally free) or be prepared to get a high bill!*  
+*Note that In SG3 mode your HP will really be power hungry so make sure to enable it only when electricity cost is low (ideally free) or be prepared to get a high bill!*
   
 Depending on your HP model, SG3 might be configurable in "ECO mode", "Normal mode" or "Comfort mode". The mode can be set using the specialist code Main Menu > Settings > Input/Output.
 
@@ -239,19 +242,33 @@ Some users reported that a ROTEX did not have a stable 5v that could be used to 
 
 If you are using an M5StickC you can select the PlatformIO env:m5stickc (or env_m5stickcplus for that version), then ESPAltherna will also report on the voltage and consumption of the M5StickC in the reported values.
 
-# Integrating with Home Assitant
+# Integrating with Home Assistant
 
-ESPAltherma integrates easily with Home Assistant using [mqtt discovery](https://www.home-assistant.io/docs/mqtt/discovery/).
+ESPAltherma integrates easily with Home Assistant using [MQTT Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 
-After setup, ESPAltherma will generate 2 entities on Home Assistant:
+On succesful startup, ESPAltherma will generate one distinct device "Daikin Altherma via ESPAltherma" and two entities under the device "ESPAltherma" under the MQTT integration in Home Assistant:
+
+![](doc/images/mqtt-devices.png)
+
+The "Daikin Altherma via ESPAltherma" device will contain all sensors you've uncommented from your definition file, while the "ESPAltherma" device will contain two more low-level entities:
 
 ![](doc/images/haentities.png)
 
-- `sensor.althermasensors` holds the values as attributes.
-
+- `sensor.althermasensors` holds the sensor values as attributes.
 - `switch.altherma` activates the relay connected to the `PIN_THERM`
 
+## Device Discovery
+
+ESPAltherma will generate a device discovery JSON and publish that to MQTT topic `homeassistant/device/espaltherma-mqtt-discovery/config` for Home Assistant to pick up. The software will attempt to make the devices as specific to their unit as possible. Other characteristics:
+
+- Their name will be the label name as defined in the , e.g. "Discharge pipe temp.(R2T)"
+- Their entity ID will be `sensor.espaltherma_` followed by a lowercase, alphanumeric only conversion of their labels with spaces replaced by underscores. For example: "Discharge pipe temp.(R2T)" becomes `discharge_pipe_tempr2t`.
+
+To clear the configuration, for example after adding or removing some sensor, publish an empty, retained message to `homeassistant/device/espaltherma-mqtt-discovery/config`.
+
 ## Declaring sensor entities
+
+The discovery shown above will create all sensor entities for you, but it's still possible to create your own sensors as before, for example when you need custom conversions or calculations.
 
 In Home Assistant, all values reported by ESPAltherma are `attribute`s of the `entity` sensor.althermasensors.
 
@@ -334,9 +351,9 @@ When put in terms of ESPAltherma variables, the COP can be define as a sensor li
 
 ## Great! I can now monitor my heat pump! Can I change the configuration values too?
 
-Not directly. It might be possible to change registry values using the serial port but I'm not aware of this. If you know, comment on [the dedicated issue](/../../issues/1).
+Not directly. It might be possible to change registry values using the serial port but I'm not aware of this. If you know, comment on [the dedicated issue](https://github.com/raomin/ESPAltherma/issues/1).
 
-However, ESPAltherma, supports an extra GPIO to control a relay that you can plug as *external On/Off thermostat*. See [**Controling your Daikin Altherma heat pump**](#controling-your-daikin-altherma-heat-pump).
+However, ESPAltherma, supports an extra GPIO to control a relay that you can plug as *external On/Off thermostat*. See [**Controlling your Daikin Altherma heat pump**](#step-3-optional---controling-your-daikin-altherma-heat-pump).
 
 If you want to configure your heat pump using an arduino, you can interact with the P1P2 serial protocol (the one of the digital thermostats) using the [nice work on P1P2Serial](https://github.com/Arnold-n/P1P2Serial) of Arnold Niessen.
 
