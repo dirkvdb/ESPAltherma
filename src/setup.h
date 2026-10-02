@@ -75,7 +75,7 @@
 // #define MQTT_OneTopic "espaltherma/OneATTR/" //Keep the ending "/" !!
 
 //Uncomment to disable common frequent log messages via MQTT to reduce network load
-//#define DISABLE_LOG_MESSAGES
+#define DISABLE_LOG_MESSAGES
 
 //Uncomment this line to enable DebugSerial - MQTT<>Serial gateway functionality
 //Messages received on espaltherma/serialTX are sent to serial port
