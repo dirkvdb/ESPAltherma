@@ -11,8 +11,8 @@
 
 #define MQTT_SERVER "mqtt.lan"//**IP address here of your MQTT server**
 // MQTT credentials are provided by Secretspec.
-#define MQTT_PORT 1883
-//#define MQTT_ENCRYPTED // uncomment if MQTT connection is encrypted via TLS
+#define MQTT_PORT 8883
+#define MQTT_ENCRYPTED // uncomment if MQTT connection is encrypted via TLS
 
 #define FREQUENCY 10000 //query values every 15 sec
 
