@@ -2,8 +2,7 @@
   description = "infra-rs";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    rust-overlay.url = "github:oxalica/rust-overlay/stable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -27,7 +26,7 @@
                 clang-tools
                 just
                 pixi
-                python310
+                python313
                 samba
                 platformio
                 mosquitto
