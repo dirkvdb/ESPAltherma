@@ -11,9 +11,9 @@ const char *discovery_json_end = "},\"stat_t\":\"espaltherma/ATTR\",\"qos\": 2}"
 #define ESP_SENSOR_WIFI_RSSI 998
 #define ESP_SENSOR_FREE_MEM 997
 
-const LabelDef battery_voltage = {-1, -1, -1, -1, ESP_SENSOR_M5BATV, "M5BatV"};
-const LabelDef wifi_rssi = {-1, -1, -1, -1, ESP_SENSOR_WIFI_RSSI, "WifiRSSI"};
-const LabelDef free_mem = {-1, -1, -1, -1, ESP_SENSOR_FREE_MEM, "FreeMem"};
+// const LabelDef battery_voltage = {-1, -1, -1, -1, ESP_SENSOR_M5BATV, "M5BatV"};
+const LabelDef wifi_rssi = {-1, -1, -1, -1, ESP_SENSOR_WIFI_RSSI, "wifi_rssi"};
+const LabelDef free_mem = {-1, -1, -1, -1, ESP_SENSOR_FREE_MEM, "free_mem"};
 
 static bool isMeasurementSensor(const std::string &sensorProperties)
 {
@@ -37,9 +37,9 @@ size_t streamDeviceDiscoveryPayload(const LabelDef *labels, size_t count, Discov
     emit(discovery_json_start, strlen(discovery_json_start));
 
     // Hardcoded ESP diagnostic sensors.
-    std::string s = makeSensorJson(battery_voltage, true);
-    emit(s.data(), s.size());
-    s = "," + makeSensorJson(wifi_rssi, true);
+    // std::string s = makeSensorJson(battery_voltage, true);
+    // emit(s.data(), s.size());
+    std::string s = makeSensorJson(wifi_rssi, true);
     emit(s.data(), s.size());
     s = "," + makeSensorJson(free_mem, true);
     emit(s.data(), s.size());
