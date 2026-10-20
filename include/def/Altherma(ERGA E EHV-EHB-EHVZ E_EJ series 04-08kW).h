@@ -126,7 +126,7 @@ LabelDef labelDefs[] = {
 //{0x60,5,203,1,-1,"Error type"},
 //{0x60,6,219,1,-1,"I/U capacity code"},
 //{0x60,7,105,2,1,"DHW setpoint"},
-//{0x60,9,105,2,1,"LW setpoint (main)"},
+{0x60,9,105,2,1,"leaving_water_setpoint_main"},
 //{0x60,11,307,1,-1,"Water flow switch"},
 //{0x60,11,306,1,-1,"Thermal protector (Q1L) BUH"},
 //{0x60,11,305,1,-1,"Thermal protector BSH"},
